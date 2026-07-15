@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tui · Iut</title>
+<style>
+  :root{
+    --bg: #0a0908;
+    --bg-elev: #121110;
+    --gold: #c9a24d;
+    --gold-dim: rgba(201,162,77,0.35);
+    --teal: #2a9d8f;
+    --teal-dim: rgba(42,157,143,0.35);
+    --ink: #ece6da;
+    --ink-dim: #8a8378;
+    --card-line: rgba(201,162,77,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); overflow-x:hidden;}
+  body{
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height:100vh;
+  }
+
+  /* ===== Header ===== */
+  header{
+    padding: 48px 20px 28px;
+    text-align:center;
+    position:relative;
+  }
+  header::before{
+    content:"";
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:1px; height:26px; background:linear-gradient(var(--gold), transparent);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.35em;
+    color:var(--teal);
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  h1{
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight:600;
+    font-size: clamp(34px, 7vw, 58px);
+    margin:0;
+    letter-spacing:0.06em;
+    background: linear-gradient(120deg, var(--gold), #efe0b8 45%, var(--teal));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .sub{
+    margin-top:10px;
+    font-size:13px;
+    color:var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.05em;
+  }
+
+  /* ===== Grid ===== */
+  #gallery{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 10px 18px 60px;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 22px 16px;
+    min-height: 40vh;
+  }
+  .card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    cursor:pointer;
+    opacity:0;
+    transform: translateY(6px);
+    animation: rise 0.45s ease forwards;
+  }
+  @keyframes rise{ to{ opacity:1; transform:translateY(0);} }
+
+  .avatar{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:50%;
+    position:relative;
+    padding:3px;
+    background: conic-gradient(from 180deg, var(--gold), var(--teal), var(--gold));
+    transition: transform 0.35s ease, filter 0.35s ease;
+  }
+  .card:hover .avatar{
+    transform: scale(1.045);
+    filter: drop-shadow(0 0 14px var(--gold-dim));
+  }
+  .avatar-inner{
+    width:100%; height:100%;
+    border-radius:50%;
+    overflow:hidden;
+    background: var(--bg-elev);
+    border: 2px solid var(--bg);
+  }
+  .avatar img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    opacity:0;
+    transition: opacity 0.5s ease;
+  }
+  .avatar img.loaded{ opacity:1; }
+  .avatar .ph{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink-dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+  }
+  .card-label{
+    margin-top:8px;
+    font-size:12px;
+    color: var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.03em;
+  }
+  .card-name{
+    margin-top: 18px;
+    margin-bottom: 2px;
+    font-family:'Cormorant Garamond', serif;
+    font-size:20px;
+    letter-spacing:0.08em;
+    color: var(--gold);
+    text-align:center;
+    grid-column: 1/-1;
+    border-top: 1px solid var(--card-line);
+    padding-top: 22px;
+  }
+
+  /* ===== Pagination ===== */
+  #pagination{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    padding: 10px 20px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .pg-btn{
+    min-width:38px;
+    height:38px;
+    padding:0 10px;
+    border-radius:10px;
+    border:1px solid var(--card-line);
+    background: rgba(255,255,255,0.02);
+    color: var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    cursor:pointer;
+    transition: all 0.2s ease;
+  }
+  .pg-btn:hover{ border-color: var(--gold-dim); color: var(--ink); }
+  .pg-btn.active{
+    background: linear-gradient(120deg, var(--gold), var(--teal));
+    color: #0a0908;
+    font-weight:600;
+    border-color: transparent;
+  }
+  .pg-ellipsis{
+    display:flex; align-items:center; color: var(--ink-dim); padding:0 4px;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  /* ===== Lightbox ===== */
+  #lightbox{
+    position:fixed; inset:0;
+    background: rgba(6,5,4,0.97);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:1000;
+    touch-action: none;
+  }
+  #lightbox.open{ display:flex; }
+  #lightbox img{
+    max-width:92vw; max-height:86vh;
+    object-fit:contain;
+    border-radius: 6px;
+    box-shadow: 0 0 60px rgba(201,162,77,0.12);
+    user-select:none;
+  }
+  #lightbox .lb-close, #lightbox .lb-nav{
+    position:absolute;
+    color: var(--ink);
+    background: rgba(255,255,255,0.04);
+    border:1px solid var(--card-line);
+    width:44px; height:44px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size:20px;
+    transition: border-color 0.2s;
+  }
+  #lightbox .lb-close:hover, #lightbox .lb-nav:hover{ border-color: var(--gold); }
+  .lb-close{ top:22px; right:22px; }
+  .lb-prev{ left:16px; top:50%; transform:translateY(-50%); }
+  .lb-next{ right:16px; top:50%; transform:translateY(-50%); }
+  .lb-counter{
+    position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; color: var(--ink-dim); letter-spacing:0.05em;
+  }
+  @media (max-width:640px){
+    .lb-prev, .lb-next{ width:38px; height:38px; }
+  }
+
+  footer{
+    text-align:center;
+    padding: 30px 20px 50px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--ink-dim);
+    letter-spacing:0.08em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">InfiniteProfile / Archive</div>
+  <h1>Tui · Iut</h1>
+  <div class="sub" id="metaLine">loading…</div>
+</header>
+
+<section id="gallery"></section>
+<nav id="pagination"></nav>
+
+<div id="lightbox">
+  <div class="lb-close" id="lbClose">✕</div>
+  <div class="lb-nav lb-prev" id="lbPrev">‹</div>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-nav lb-next" id="lbNext">›</div>
+  <div class="lb-counter" id="lbCounter"></div>
+</div>
+
+<footer>Tui-Iut Archive · Personal Collection</footer>
+
+<script>
+/* ============================================================
+   MODULAR DATA LAYER
+   Edit RAW_ENTRIES to add/remove/re-map images.
+   Each entry is either:
+     - a string  -> just a filename (no header, grouped under last active name)
+     - {name}    -> sets/changes the active header, no image
+     - {name, file} -> sets header AND provides an image
+   For this dataset every entry is a bare filename (no names supplied),
+   so the gallery renders as a flat, anonymous profile grid.
+   ============================================================ */
+  const BASE_URL = "https://github.com/InfiniteProfile/Tui-Iut/blob/main/";
+
+  const RAW_ENTRIES = [
+"FB_IMG_1783872986010.jpg",
+"FB_IMG_1783873059889.jpg",
+"FB_IMG_1783873062088.jpg",
+"FB_IMG_1783873063871.jpg",
+"FB_IMG_1783873065964.jpg",
+"FB_IMG_1783873067993.jpg",
+"FB_IMG_1783873070066.jpg",
+"FB_IMG_1783873072072.jpg",
+"FB_IMG_1783873074165.jpg",
+"FB_IMG_1783873076217.jpg",
+"FB_IMG_1783873078089.jpg",
+"FB_IMG_1783873080281.jpg",
+"FB_IMG_1783873082186.jpg",
+"FB_IMG_1783873084610.jpg",
+"FB_IMG_1783873086184.jpg",
+"FB_IMG_1783873088293.jpg",
+"FB_IMG_1783873090336.jpg",
+"FB_IMG_1783873092361.jpg",
+"FB_IMG_1783873094435.jpg",
+"FB_IMG_1783873096541.jpg",
+"FB_IMG_1783873098854.jpg",
+"FB_IMG_1783873101154.jpg",
+"FB_IMG_1783873102703.jpg",
+"FB_IMG_1783873104626.jpg",
+"FB_IMG_1783873106645.jpg",
+"FB_IMG_1783873108607.jpg",
+"FB_IMG_1783873110739.jpg",
+"FB_IMG_1783873113613.jpg",
+"FB_IMG_1783873115231.jpg",
+"FB_IMG_1783873116848.jpg",
+"FB_IMG_1783873119067.jpg",
+"FB_IMG_1783873120817.jpg",
+"FB_IMG_1783873122791.jpg",
+"FB_IMG_1783873125092.jpg",
+"FB_IMG_1783873127151.jpg",
+"FB_IMG_1783873129448.jpg",
+"FB_IMG_1783873131445.jpg",
+"FB_IMG_1783873133312.jpg",
+"FB_IMG_1783873135172.jpg",
+"FB_IMG_1783873137694.jpg",
+"FB_IMG_1783873139166.jpg",
+"FB_IMG_1783873141829.jpg",
+"FB_IMG_1783873143337.jpg",
+"FB_IMG_1783873145281.jpg",
+"FB_IMG_1783873147247.jpg",
+"FB_IMG_1783873149442.jpg",
+"FB_IMG_1783873151589.jpg",
+"FB_IMG_1783873153502.jpg",
+"FB_IMG_1783873155910.jpg",
+"FB_IMG_1783873157516.jpg",
+"FB_IMG_1783873159836.jpg",
+"FB_IMG_1783873161794.jpg",
+"FB_IMG_1783873163854.jpg",
+"FB_IMG_1783873166276.jpg",
+"FB_IMG_1783873167673.jpg",
+"FB_IMG_1783873170633.jpg",
+"FB_IMG_1783873171858.jpg",
+"FB_IMG_1783873173610.jpg",
+"FB_IMG_1783873176360.jpg",
+"FB_IMG_1783873177647.jpg",
+"FB_IMG_1783873179765.jpg",
+"FB_IMG_1783873181727.jpg",
+"FB_IMG_1783873184546.jpg",
+"FB_IMG_1783873186283.jpg",
+"FB_IMG_1783873188222.jpg",
+"FB_IMG_1783873190244.jpg",
+"FB_IMG_1783873192295.jpg",
+"FB_IMG_1783873193845.jpg",
+"FB_IMG_1783873196043.jpg",
+"FB_IMG_1783873198754.jpg",
+"FB_IMG_1783873200530.jpg",
+"FB_IMG_1783873202291.jpg",
+"FB_IMG_1783873204597.jpg",
+"FB_IMG_1783873206111.jpg",
+"FB_IMG_1783873208703.jpg",
+"FB_IMG_1783873210687.jpg",
+"FB_IMG_1783873212438.jpg",
+"FB_IMG_1783873214455.jpg",
+"FB_IMG_1783873216870.jpg",
+"FB_IMG_1783873218505.jpg",
+"FB_IMG_1783873220665.jpg",
+"FB_IMG_1783873222665.jpg",
+"FB_IMG_1783873224643.jpg",
+"FB_IMG_1783873226643.jpg",
+"FB_IMG_1783873228594.jpg",
+"FB_IMG_1783873230771.jpg",
+"FB_IMG_1783873233103.jpg",
+"FB_IMG_1783873235372.jpg",
+"FB_IMG_1783873237176.jpg",
+"FB_IMG_1783873239183.jpg",
+"FB_IMG_1783873241302.jpg",
+"FB_IMG_1783873243316.jpg",
+"FB_IMG_1783873245439.jpg",
+"FB_IMG_1783873247346.jpg",
+"FB_IMG_1783873249473.jpg",
+"FB_IMG_1783873251552.jpg",
+"FB_IMG_1783873253238.jpg",
+"FB_IMG_1783873255480.jpg",
+"FB_IMG_1783873258501.jpg",
+"FB_IMG_1783873259291.jpg",
+"FB_IMG_1783873261312.jpg",
+"FB_IMG_1783873264642.jpg",
+"FB_IMG_1783873265775.jpg",
+"FB_IMG_1783873267928.jpg",
+"FB_IMG_1783873269796.jpg",
+"FB_IMG_1783873272060.jpg",
+"FB_IMG_1783873273459.jpg",
+"FB_IMG_1783873275608.jpg",
+"FB_IMG_1783873277675.jpg",
+"FB_IMG_1783873279638.jpg",
+"FB_IMG_1783873281471.jpg",
+"FB_IMG_1783873283667.jpg",
+"FB_IMG_1783873285590.jpg",
+"FB_IMG_1783873287862.jpg",
+"FB_IMG_1783873290106.jpg",
+"FB_IMG_1783873291598.jpg",
+"FB_IMG_1783873293870.jpg",
+"FB_IMG_1783873295597.jpg",
+"FB_IMG_1783873298088.jpg",
+"FB_IMG_1783873300147.jpg",
+"FB_IMG_1783873301902.jpg",
+"FB_IMG_1783873303906.jpg",
+"FB_IMG_1783873305558.jpg",
+"FB_IMG_1783873307603.jpg",
+"FB_IMG_1783873309654.jpg",
+"FB_IMG_1783873311730.jpg",
+"FB_IMG_1783873313792.jpg",
+"FB_IMG_1783873316228.jpg",
+"FB_IMG_1783873318166.jpg",
+"FB_IMG_1783873319904.jpg",
+"FB_IMG_1783873321990.jpg",
+"FB_IMG_1783873324670.jpg",
+"FB_IMG_1783873326099.jpg",
+"FB_IMG_1783873328237.jpg",
+"FB_IMG_1783873330755.jpg",
+"FB_IMG_1783873331977.jpg",
+"FB_IMG_1783873334392.jpg",
+"FB_IMG_1783873336415.jpg",
+"FB_IMG_1783873338458.jpg",
+"FB_IMG_1783873340643.jpg",
+"FB_IMG_1783873342595.jpg",
+"FB_IMG_1783873344909.jpg",
+"FB_IMG_1783873346556.jpg",
+"FB_IMG_1783873348689.jpg",
+"FB_IMG_1783873350446.jpg",
+"FB_IMG_1783873352505.jpg",
+"FB_IMG_1783873354466.jpg",
+"FB_IMG_1783873356618.jpg",
+"FB_IMG_1783873358612.jpg",
+"FB_IMG_1783873360862.jpg",
+"FB_IMG_1783873363065.jpg",
+"FB_IMG_1783873364836.jpg",
+"FB_IMG_1783873367189.jpg",
+"FB_IMG_1783873369134.jpg",
+"FB_IMG_1783873371746.jpg",
+"FB_IMG_1783873373071.jpg",
+"FB_IMG_1783873374954.jpg",
+"FB_IMG_1783873377073.jpg",
+"FB_IMG_1783873379221.jpg",
+"FB_IMG_1783873380713.jpg",
+"FB_IMG_1783873387405.jpg",
+"FB_IMG_1783873389234.jpg",
+"FB_IMG_1783873390882.jpg",
+"FB_IMG_1783873393360.jpg",
+"FB_IMG_1783873395349.jpg",
+"FB_IMG_1783873397547.jpg",
+"FB_IMG_1783873399258.jpg",
+"FB_IMG_1783873401700.jpg",
+"FB_IMG_1783873403629.jpg",
+"FB_IMG_1783873405850.jpg",
+"FB_IMG_1783873406952.jpg",
+"FB_IMG_1783873410261.jpg",
+"FB_IMG_1783873412944.jpg",
+"FB_IMG_1783873414244.jpg",
+"FB_IMG_1783873416106.jpg",
+"FB_IMG_1783873418458.jpg",
+"FB_IMG_1783873420604.jpg",
+"FB_IMG_1783873422638.jpg",
+"FB_IMG_1783873424576.jpg",
+"FB_IMG_1783873426559.jpg",
+"FB_IMG_1783873428520.jpg",
+"FB_IMG_1783873430785.jpg",
+"FB_IMG_1783873432632.jpg",
+"FB_IMG_1783873435060.jpg",
+"FB_IMG_1783873437274.jpg",
+"FB_IMG_1783873438994.jpg",
+"FB_IMG_1783873440786.jpg",
+"FB_IMG_1783873442926.jpg",
+"FB_IMG_1783873444667.jpg",
+"FB_IMG_1783873446455.jpg",
+"FB_IMG_1783873448678.jpg",
+"FB_IMG_1783873450734.jpg",
+"FB_IMG_1783873453018.jpg",
+"FB_IMG_1783873455094.jpg",
+"FB_IMG_1783873457042.jpg",
+"FB_IMG_1783873459250.jpg",
+"FB_IMG_1783873461249.jpg",
+"FB_IMG_1783873464372.jpg",
+"FB_IMG_1783873466064.jpg",
+"FB_IMG_1783873467214.jpg",
+"FB_IMG_1783873470278.jpg",
+"FB_IMG_1783873471355.jpg",
+"FB_IMG_1783873473523.jpg",
+"FB_IMG_1783873475380.jpg",
+"FB_IMG_1783873477468.jpg",
+"FB_IMG_1783873480313.jpg",
+"FB_IMG_1783873481084.jpg",
+"FB_IMG_1783873483363.jpg",
+"FB_IMG_1783873485252.jpg",
+"FB_IMG_1783873487321.jpg",
+"FB_IMG_1783873489297.jpg",
+"FB_IMG_1783873491331.jpg",
+"FB_IMG_1783873493611.jpg",
+"FB_IMG_1783873495692.jpg",
+"FB_IMG_1783873497833.jpg",
+"FB_IMG_1783873500056.jpg",
+"FB_IMG_1783873501843.jpg",
+"FB_IMG_1783873503481.jpg",
+"FB_IMG_1783873505616.jpg",
+"FB_IMG_1783873508048.jpg",
+"FB_IMG_1783873509558.jpg",
+"FB_IMG_1783873511908.jpg",
+"FB_IMG_1783873513955.jpg",
+"FB_IMG_1783873516030.jpg",
+"FB_IMG_1783873518125.jpg",
+"FB_IMG_1783873520184.jpg",
+"FB_IMG_1783873522086.jpg",
+"FB_IMG_1783873524150.jpg",
+"FB_IMG_1783873526550.jpg",
+"FB_IMG_1783873528681.jpg",
+"FB_IMG_1783873530592.jpg",
+"FB_IMG_1783873532513.jpg",
+"FB_IMG_1783873534519.jpg",
+"FB_IMG_1783873536354.jpg",
+"FB_IMG_1783873538443.jpg",
+"FB_IMG_1783873540321.jpg",
+"FB_IMG_1783873542358.jpg",
+"FB_IMG_1783873544363.jpg",
+"FB_IMG_1783873546164.jpg",
+"FB_IMG_1783873548202.jpg",
+"FB_IMG_1783873550152.jpg",
+"FB_IMG_1783873552631.jpg",
+"FB_IMG_1783873554526.jpg",
+"FB_IMG_1783873556441.jpg",
+"FB_IMG_1783873558376.jpg",
+"FB_IMG_1783873560327.jpg",
+"FB_IMG_1783873562662.jpg",
+"FB_IMG_1783873564326.jpg",
+"FB_IMG_1783873566335.jpg",
+"FB_IMG_1783873568649.jpg",
+"FB_IMG_1783873570916.jpg",
+"FB_IMG_1783873573324.jpg",
+"FB_IMG_1783873575692.jpg",
+"FB_IMG_1783873578108.jpg",
+"FB_IMG_1783873580192.jpg",
+"FB_IMG_1783873581611.jpg",
+"FB_IMG_1783873583447.jpg",
+"FB_IMG_1783873585339.jpg",
+"FB_IMG_1783873587610.jpg",
+"FB_IMG_1783873589543.jpg",
+"FB_IMG_1783873592038.jpg",
+"FB_IMG_1783873593349.jpg",
+"FB_IMG_1783873595230.jpg",
+"FB_IMG_1783873597263.jpg",
+"FB_IMG_1783873599271.jpg",
+"FB_IMG_1783873601433.jpg",
+"FB_IMG_1783873603644.jpg",
+"FB_IMG_1783873605693.jpg",
+"FB_IMG_1783873607781.jpg",
+"FB_IMG_1783873609843.jpg",
+"FB_IMG_1783873611744.jpg",
+"FB_IMG_1783873613777.jpg",
+"FB_IMG_1783873615626.jpg",
+"FB_IMG_1783873617620.jpg",
+"FB_IMG_1783873619850.jpg",
+"FB_IMG_1783873621849.jpg",
+"FB_IMG_1783873623734.jpg",
+"FB_IMG_1783873625690.jpg",
+"FB_IMG_1783873628044.jpg",
+"FB_IMG_1783873629859.jpg",
+"FB_IMG_1783873632076.jpg",
+"FB_IMG_1783873633701.jpg",
+"FB_IMG_1783873636474.jpg",
+"FB_IMG_1783873638324.jpg",
+"FB_IMG_1783873640293.jpg",
+"FB_IMG_1783873642133.jpg",
+"FB_IMG_1783873643744.jpg",
+"FB_IMG_1783873646486.jpg",
+"FB_IMG_1783873648018.jpg",
+"FB_IMG_1783873650003.jpg",
+"FB_IMG_1783873652217.jpg",
+"FB_IMG_1783873654056.jpg",
+"FB_IMG_1783873656243.jpg",
+"FB_IMG_1783873658391.jpg",
+"FB_IMG_1783873660068.jpg",
+"FB_IMG_1783873662259.jpg",
+"FB_IMG_1783873665235.jpg",
+"FB_IMG_1783873666412.jpg",
+"FB_IMG_1783873668566.jpg",
+"FB_IMG_1783873670625.jpg",
+"FB_IMG_1783873672551.jpg",
+"FB_IMG_1783873674391.jpg",
+"FB_IMG_1783873676463.jpg",
+"FB_IMG_1783873678679.jpg",
+"FB_IMG_1783873680471.jpg",
+"FB_IMG_1783873682596.jpg",
+"FB_IMG_1783873684402.jpg",
+"FB_IMG_1783873686644.jpg",
+"FB_IMG_1783873688861.jpg",
+"FB_IMG_1783873691029.jpg",
+"FB_IMG_1783873692787.jpg",
+"FB_IMG_1783873695023.jpg",
+"FB_IMG_1783873697113.jpg",
+"FB_IMG_1783873698929.jpg",
+"FB_IMG_1783873701502.jpg",
+"FB_IMG_1783873703589.jpg",
+"FB_IMG_1783873704972.jpg",
+"FB_IMG_1783873707873.jpg",
+"FB_IMG_1783873708997.jpg",
+"FB_IMG_1783873711659.jpg",
+"FB_IMG_1783873713314.jpg",
+"FB_IMG_1783873715362.jpg",
+"FB_IMG_1783873717322.jpg",
+"FB_IMG_1783873719087.jpg",
+"FB_IMG_1783873721605.jpg",
+"FB_IMG_1783873723162.jpg",
+"FB_IMG_1783873725941.jpg",
+"FB_IMG_1783873727227.jpg",
+"FB_IMG_1783873729232.jpg",
+"FB_IMG_1783873731467.jpg",
+"FB_IMG_1783873733423.jpg",
+"FB_IMG_1783873735784.jpg",
+"FB_IMG_1783873737829.jpg",
+"FB_IMG_1783873739835.jpg",
+"FB_IMG_1783873741696.jpg",
+"FB_IMG_1783873743523.jpg",
+"FB_IMG_1783873745078.jpg",
+"FB_IMG_1783873747364.jpg",
+"FB_IMG_1783873749370.jpg",
+"FB_IMG_1783873751691.jpg",
+"FB_IMG_1783873753474.jpg",
+"FB_IMG_1783873755612.jpg",
+"FB_IMG_1783873757795.jpg",
+"FB_IMG_1783873759778.jpg",
+"FB_IMG_1783873761688.jpg",
+"FB_IMG_1783873764345.jpg",
+"FB_IMG_1783873766006.jpg",
+"FB_IMG_1783873767958.jpg",
+"FB_IMG_1783873769930.jpg",
+"FB_IMG_1783873771938.jpg",
+"FB_IMG_1783873774201.jpg",
+"FB_IMG_1783873776013.jpg",
+"FB_IMG_1783873778184.jpg",
+"FB_IMG_1783873782425.jpg",
+"FB_IMG_1783873782763.jpg",
+"FB_IMG_1783873784042.jpg",
+"FB_IMG_1783873786801.jpg",
+"FB_IMG_1783873788886.jpg",
+"FB_IMG_1783873790391.jpg",
+"FB_IMG_1783873792777.jpg",
+"FB_IMG_1783873794232.jpg",
+"FB_IMG_1783873796013.jpg",
+"FB_IMG_1783873798152.jpg",
+"FB_IMG_1783873801244.jpg",
+"FB_IMG_1783873802022.jpg",
+"FB_IMG_1783873804645.jpg",
+"FB_IMG_1783873806833.jpg",
+"FB_IMG_1783873808467.jpg",
+"FB_IMG_1783873810591.jpg",
+"FB_IMG_1783873812762.jpg",
+"FB_IMG_1783873814641.jpg",
+"FB_IMG_1783873818601.jpg",
+"FB_IMG_1783873820745.jpg",
+"FB_IMG_1783873822959.jpg",
+"FB_IMG_1783873824960.jpg",
+"FB_IMG_1783898021660.jpg",
+"FB_IMG_1783898026053.jpg",
+"FB_IMG_1783898119740.jpg",
+"FB_IMG_1783898128327.jpg",
+"FB_IMG_1783898141412.jpg",
+"FB_IMG_1783930869470.jpg",
+"FB_IMG_1783930870935.jpg",
+"FB_IMG_1783930872435.jpg",
+"FB_IMG_1783930874075.jpg",
+"FB_IMG_1783930875782.jpg",
+"FB_IMG_1783930877215.jpg",
+"FB_IMG_1783930878887.jpg",
+"FB_IMG_1783930880424.jpg",
+"FB_IMG_1783930889195.jpg",
+"FB_IMG_1783930893525.jpg",
+"FB_IMG_1783930895670.jpg",
+"FB_IMG_1783930897203.jpg",
+"FB_IMG_1783930899885.jpg",
+"FB_IMG_1783930900615.jpg",
+"FB_IMG_1783930902116.jpg",
+"FB_IMG_1783930903773.jpg",
+"FB_IMG_1783930905327.jpg",
+"FB_IMG_1783930906880.jpg",
+"FB_IMG_1783930909332.jpg",
+"FB_IMG_1783930911567.jpg",
+"FB_IMG_1783930913779.jpg",
+"FB_IMG_1783930915449.jpg",
+"FB_IMG_1783930916742.jpg",
+"FB_IMG_1783930918760.jpg",
+"FB_IMG_1783930920222.jpg",
+"FB_IMG_1783930922013.jpg",
+"FB_IMG_1783930923636.jpg",
+"FB_IMG_1783930925817.jpg",
+"FB_IMG_1783930927945.jpg",
+"FB_IMG_1783930929647.jpg",
+"FB_IMG_1783930931249.jpg",
+"FB_IMG_1783930932934.jpg",
+"FB_IMG_1783930977631.jpg",
+"FB_IMG_1783930979795.jpg",
+"FB_IMG_1783930981765.jpg",
+"FB_IMG_1783930983684.jpg",
+"FB_IMG_1783930985750.jpg",
+"FB_IMG_1783930987706.jpg",
+"FB_IMG_1783930989476.jpg",
+"FB_IMG_1783930991512.jpg",
+"FB_IMG_1783930993536.jpg",
+"FB_IMG_1783930995586.jpg",
+"FB_IMG_1783930997986.jpg",
+"FB_IMG_1783931000124.jpg",
+"FB_IMG_1783931002353.jpg",
+"FB_IMG_1783931003853.jpg",
+"FB_IMG_1783931005900.jpg",
+"FB_IMG_1783931007905.jpg",
+"FB_IMG_1783931009922.jpg",
+"FB_IMG_1783931012416.jpg",
+"FB_IMG_1783931014454.jpg",
+"FB_IMG_1783931016295.jpg",
+"FB_IMG_1783931018287.jpg",
+"FB_IMG_1783931020584.jpg",
+"FB_IMG_1783931022547.jpg",
+"FB_IMG_1783931024695.jpg",
+"FB_IMG_1783931026734.jpg",
+"FB_IMG_1783931028871.jpg",
+"FB_IMG_1783931030816.jpg",
+"FB_IMG_1783931032520.jpg",
+"FB_IMG_1783931034527.jpg",
+"FB_IMG_1783931036510.jpg",
+"FB_IMG_1783931038775.jpg",
+"FB_IMG_1783931040972.jpg",
+"FB_IMG_1783931043512.jpg",
+"FB_IMG_1783931045317.jpg",
+"FB_IMG_1783931046863.jpg",
+"FB_IMG_1783931048769.jpg",
+"FB_IMG_1783931051184.jpg",
+"FB_IMG_1783931053501.jpg",
+"FB_IMG_1783931055025.jpg",
+"FB_IMG_1783931057041.jpg",
+"FB_IMG_1783931059420.jpg",
+"FB_IMG_1783931061620.jpg",
+"FB_IMG_1783931063365.jpg",
+"FB_IMG_1783931065615.jpg",
+"FB_IMG_1783931067568.jpg",
+"FB_IMG_1783931069471.jpg",
+"FB_IMG_1783931071456.jpg",
+"FB_IMG_1783931073315.jpg",
+"FB_IMG_1783931075444.jpg",
+"FB_IMG_1783931077332.jpg",
+"FB_IMG_1783931079665.jpg",
+"FB_IMG_1783931082102.jpg",
+"FB_IMG_1783931083957.jpg",
+"FB_IMG_1783931086144.jpg",
+"FB_IMG_1783931088424.jpg",
+"FB_IMG_1783931090523.jpg",
+"FB_IMG_1783931092019.jpg",
+"FB_IMG_1783931093825.jpg",
+"FB_IMG_1783931095609.jpg",
+"FB_IMG_1783931097285.jpg",
+"FB_IMG_1783931099489.jpg",
+"FB_IMG_1783931101762.jpg",
+"FB_IMG_1783931103854.jpg",
+"FB_IMG_1783931105657.jpg",
+"FB_IMG_1783931107475.jpg",
+"FB_IMG_1783931109970.jpg",
+"FB_IMG_1783931111518.jpg",
+"FB_IMG_1783931113541.jpg",
+"FB_IMG_1783931115967.jpg",
+"FB_IMG_1783931120839.jpg",
+"FB_IMG_1783931121444.jpg",
+"FB_IMG_1783931123321.jpg",
+"FB_IMG_1783931124577.jpg",
+"FB_IMG_1783931126403.jpg",
+"FB_IMG_1783931128024.jpg",
+"FB_IMG_1783931130234.jpg",
+"FB_IMG_1783931132333.jpg",
+"FB_IMG_1783931134262.jpg",
+"FB_IMG_1783931136598.jpg",
+"FB_IMG_1783931139103.jpg",
+"FB_IMG_1783931140951.jpg",
+"FB_IMG_1783931142770.jpg",
+"FB_IMG_1783931145454.jpg",
+"FB_IMG_1783931148734.jpg",
+"FB_IMG_1783931149642.jpg",
+"FB_IMG_1783931151443.jpg",
+"FB_IMG_1783931153352.jpg",
+"FB_IMG_1783931154950.jpg",
+"FB_IMG_1783931156735.jpg",
+"FB_IMG_1783931158868.jpg",
+"FB_IMG_1783931160303.jpg",
+"FB_IMG_1783931162791.jpg",
+"FB_IMG_1783931165002.jpg",
+"FB_IMG_1783931167056.jpg",
+"FB_IMG_1783931168903.jpg",
+"FB_IMG_1783931171007.jpg",
+"FB_IMG_1783931172635.jpg",
+"FB_IMG_1783931174794.jpg",
+"FB_IMG_1783931176631.jpg",
+"FB_IMG_1783931178593.jpg",
+"FB_IMG_1783931181084.jpg",
+"FB_IMG_1783931182889.jpg",
+"FB_IMG_1783931185202.jpg",
+"FB_IMG_1783931187194.jpg",
+"FB_IMG_1783931189686.jpg",
+"FB_IMG_1783931191641.jpg",
+"FB_IMG_1783931194061.jpg",
+"FB_IMG_1783931196319.jpg",
+"FB_IMG_1783931197553.jpg",
+"FB_IMG_1783931199670.jpg",
+"FB_IMG_1783931201779.jpg",
+"FB_IMG_1783931203305.jpg",
+"FB_IMG_1783931205166.jpg",
+"FB_IMG_1783931207118.jpg",
+"FB_IMG_1783931209302.jpg",
+"FB_IMG_1783931211129.jpg",
+"FB_IMG_1783931213263.jpg",
+"FB_IMG_1783931215483.jpg",
+"FB_IMG_1783931217363.jpg",
+"FB_IMG_1783931219344.jpg",
+"FB_IMG_1783931221520.jpg",
+"FB_IMG_1783931223660.jpg",
+"FB_IMG_1783931225548.jpg",
+"FB_IMG_1783931227654.jpg",
+"FB_IMG_1783931229586.jpg",
+"FB_IMG_1783931232363.jpg",
+"FB_IMG_1783931233886.jpg",
+"FB_IMG_1783931235855.jpg",
+"FB_IMG_1783931237937.jpg",
+"FB_IMG_1783931239690.jpg",
+"FB_IMG_1783931241737.jpg",
+"FB_IMG_1783931243597.jpg",
+"FB_IMG_1783931245724.jpg",
+"FB_IMG_1783931248005.jpg",
+"FB_IMG_1783931250020.jpg",
+"FB_IMG_1783931252065.jpg",
+"FB_IMG_1783931253738.jpg",
+"FB_IMG_1783931255885.jpg",
+"FB_IMG_1783931257851.jpg",
+"FB_IMG_1783931260195.jpg",
+"FB_IMG_1783931262442.jpg",
+"FB_IMG_1783931264336.jpg",
+"FB_IMG_1783931266002.jpg",
+"FB_IMG_1783931268593.jpg",
+"FB_IMG_1783931270385.jpg",
+"FB_IMG_1783931272501.jpg",
+"FB_IMG_1783931274671.jpg",
+"FB_IMG_1783931276817.jpg",
+"FB_IMG_1783931278639.jpg",
+"FB_IMG_1783931280810.jpg",
+"FB_IMG_1783931282594.jpg",
+"FB_IMG_1783931284318.jpg",
+"FB_IMG_1783931286650.jpg",
+"FB_IMG_1783931288577.jpg",
+"FB_IMG_1783931290719.jpg",
+"FB_IMG_1783931292515.jpg",
+"FB_IMG_1783931295394.jpg",
+"FB_IMG_1783931297436.jpg",
+"FB_IMG_1783931299491.jpg",
+"FB_IMG_1783931301303.jpg",
+"FB_IMG_1783931303001.jpg",
+"FB_IMG_1783931305523.jpg",
+"FB_IMG_1783931307312.jpg",
+"FB_IMG_1783931308681.jpg",
+"FB_IMG_1783931312077.jpg",
+"FB_IMG_1783931313904.jpg",
+"FB_IMG_1783931315355.jpg",
+"FB_IMG_1783931317345.jpg",
+"FB_IMG_1783931319505.jpg",
+"FB_IMG_1783931321855.jpg",
+"FB_IMG_1783931323612.jpg",
+"FB_IMG_1783931325370.jpg",
+"FB_IMG_1783931327319.jpg",
+"FB_IMG_1783931329386.jpg",
+"FB_IMG_1783931331384.jpg",
+"FB_IMG_1783931333551.jpg",
+"FB_IMG_1783931335134.jpg",
+"FB_IMG_1783931337176.jpg",
+"FB_IMG_1783931339098.jpg",
+"FB_IMG_1783931377781.jpg",
+"FB_IMG_1783931380275.jpg",
+"FB_IMG_1783931382292.jpg",
+"FB_IMG_1783931385181.jpg",
+"FB_IMG_1783931387472.jpg",
+"FB_IMG_1783931389328.jpg",
+"FB_IMG_1783931391503.jpg",
+"FB_IMG_1783931393389.jpg",
+"FB_IMG_1783931394426.jpg",
+"FB_IMG_1783931396576.jpg",
+"FB_IMG_1783931399117.jpg",
+"FB_IMG_1783931400856.jpg",
+"FB_IMG_1783931402911.jpg",
+"FB_IMG_1783931404761.jpg",
+"FB_IMG_1783931406711.jpg",
+"FB_IMG_1783931408788.jpg",
+"FB_IMG_1783931410646.jpg",
+"FB_IMG_1783931412536.jpg",
+"FB_IMG_1783931415214.jpg",
+"FB_IMG_1783931417581.jpg",
+"FB_IMG_1783931418884.jpg",
+"FB_IMG_1783931421103.jpg",
+"FB_IMG_1783931423266.jpg",
+"FB_IMG_1783931425184.jpg",
+"FB_IMG_1783931427022.jpg",
+"FB_IMG_1783931428871.jpg",
+"FB_IMG_1783931430804.jpg",
+"FB_IMG_1783931432883.jpg",
+"FB_IMG_1783931435445.jpg",
+"FB_IMG_1783931437300.jpg",
+"FB_IMG_1783931439479.jpg",
+"FB_IMG_1783931441518.jpg",
+"FB_IMG_1783931443468.jpg",
+"FB_IMG_1783931445372.jpg",
+"FB_IMG_1783931447445.jpg",
+"FB_IMG_1783931450654.jpg",
+"FB_IMG_1783931451802.jpg",
+"FB_IMG_1783931453692.jpg",
+"FB_IMG_1783931455803.jpg",
+"FB_IMG_1783931457627.jpg",
+"FB_IMG_1783931459626.jpg",
+"FB_IMG_1783931461616.jpg",
+"FB_IMG_1783931463654.jpg",
+"FB_IMG_1783931465749.jpg",
+"FB_IMG_1783931467871.jpg",
+"FB_IMG_1783931470107.jpg",
+"FB_IMG_1783931471765.jpg",
+"FB_IMG_1783931474154.jpg",
+"FB_IMG_1783931475918.jpg",
+"FB_IMG_1783931478143.jpg",
+"FB_IMG_1783931687762.jpg",
+"FB_IMG_1783950880568.jpg",
+"FB_IMG_1783950882252.jpg",
+"FB_IMG_1783950884026.jpg",
+"FB_IMG_1783950885673.jpg",
+"FB_IMG_1783950887234.jpg",
+"FB_IMG_1783950888526.jpg",
+"FB_IMG_1783950890260.jpg",
+"FB_IMG_1783950891445.jpg",
+"FB_IMG_1783950892758.jpg",
+"FB_IMG_1783950894242.jpg",
+"FB_IMG_1783958656510.jpg",
+"FB_IMG_1783958663673.jpg",
+"FB_IMG_1783958670187.jpg",
+"FB_IMG_1783958678555.jpg",
+"FB_IMG_1783958687211.jpg",
+"FB_IMG_1783958691760.jpg",
+"FB_IMG_1783961394176.jpg",
+"FB_IMG_1783961399427.jpg",
+"FB_IMG_1783961405555.jpg",
+"FB_IMG_1783961428257.jpg",
+"FB_IMG_1783961429924.jpg",
+"FB_IMG_1783961432018.jpg",
+"FB_IMG_1783961433294.jpg",
+"FB_IMG_1783961434993.jpg",
+"FB_IMG_1783961436467.jpg",
+"FB_IMG_1783961437721.jpg",
+"FB_IMG_1783961439322.jpg",
+"FB_IMG_1783961440741.jpg",
+"FB_IMG_1783961442161.jpg",
+"FB_IMG_1783961443425.jpg",
+"FB_IMG_1783961444598.jpg",
+"FB_IMG_1783961450970.jpg",
+"FB_IMG_1783961465824.jpg",
+"FB_IMG_1783961469396.jpg",
+"FB_IMG_1783961481083.jpg",
+"FB_IMG_1783961488361.jpg",
+"FB_IMG_1783961491959.jpg",
+"FB_IMG_1783961495066.jpg",
+"FB_IMG_1783961504612.jpg",
+"FB_IMG_1783961518484.jpg",
+"FB_IMG_1783961521373.jpg",
+"FB_IMG_1783961522792.jpg",
+"FB_IMG_1783962032459.jpg",
+"FB_IMG_1783962043432.jpg",
+"FB_IMG_1783962058376.jpg",
+"FB_IMG_1783962137924.jpg",
+"FB_IMG_1783962139929.jpg",
+"FB_IMG_1783962143107.jpg",
+"FB_IMG_1783962145081.jpg",
+"FB_IMG_1783962159470.jpg",
+"FB_IMG_1783962162074.jpg",
+"FB_IMG_1783962163737.jpg",
+"FB_IMG_1783962165653.jpg",
+"FB_IMG_1783962167745.jpg",
+"FB_IMG_1783963368746.jpg",
+"FB_IMG_1783964000810.jpg",
+"FB_IMG_1783964001262.jpg",
+"FB_IMG_1783964003122.jpg",
+"FB_IMG_1783964007971.jpg",
+"FB_IMG_1783964009008.jpg",
+"FB_IMG_1783964009358.jpg",
+"FB_IMG_1783964012984.jpg",
+"FB_IMG_1783964051593.jpg",
+"FB_IMG_1783964821050.jpg",
+"FB_IMG_1783964823085.jpg",
+"FB_IMG_1783964825122.jpg",
+"FB_IMG_1783964826631.jpg",
+"FB_IMG_1783964828233.jpg",
+"FB_IMG_1783964841773.jpg",
+"FB_IMG_1783964852534.jpg",
+"FB_IMG_1783964879152.jpg",
+"FB_IMG_1783964881011.jpg",
+"FB_IMG_1783964891078.jpg",
+"FB_IMG_1783964902886.jpg",
+"FB_IMG_1783964906663.jpg",
+"FB_IMG_1783964911227.jpg",
+"FB_IMG_1783974179442.jpg",
+"FB_IMG_1783974205342.jpg",
+"FB_IMG_1783974207321.jpg",
+"FB_IMG_1783974210485.jpg",
+"FB_IMG_1783974211665.jpg",
+"FB_IMG_1783974219032.jpg",
+"FB_IMG_1783974223576.jpg",
+"FB_IMG_1783974252220.jpg",
+"FB_IMG_1783974257836.jpg",
+"FB_IMG_1783974263881.jpg",
+"FB_IMG_1783974269511.jpg",
+"FB_IMG_1783974271252.jpg",
+"FB_IMG_1783974278751.jpg",
+"FB_IMG_1783974282994.jpg",
+"FB_IMG_1783974287182.jpg",
+"FB_IMG_1783974303229.jpg",
+"FB_IMG_1783974305199.jpg",
+"FB_IMG_1783974307267.jpg",
+"FB_IMG_1783974309406.jpg",
+"FB_IMG_1783974311814.jpg",
+"FB_IMG_1783974313615.jpg",
+"FB_IMG_1783974315132.jpg",
+"FB_IMG_1783974317384.jpg",
+"FB_IMG_1783974319375.jpg",
+"FB_IMG_1783974321937.jpg",
+"FB_IMG_1783974323838.jpg",
+"FB_IMG_1783974325266.jpg",
+"FB_IMG_1783974327813.jpg",
+"FB_IMG_1783974330016.jpg",
+"FB_IMG_1783974331783.jpg",
+"FB_IMG_1783974334513.jpg",
+"FB_IMG_1783974337003.jpg",
+"FB_IMG_1783974338650.jpg",
+"FB_IMG_1783974342449.jpg",
+"FB_IMG_1783974344483.jpg",
+"FB_IMG_1783974346795.jpg",
+"FB_IMG_1783974348428.jpg",
+"FB_IMG_1783974352502.jpg",
+"FB_IMG_1783974355528.jpg",
+"FB_IMG_1783974359535.jpg",
+"FB_IMG_1783974360436.jpg",
+"FB_IMG_1783974362783.jpg",
+"FB_IMG_1783974367715.jpg",
+"FB_IMG_1783974369668.jpg",
+"FB_IMG_1783974374021.jpg",
+"FB_IMG_1783974376092.jpg",
+"FB_IMG_1783974379086.jpg",
+"FB_IMG_1783974380598.jpg",
+"FB_IMG_1783974381931.jpg",
+"FB_IMG_1783974384185.jpg",
+"FB_IMG_1783974387285.jpg",
+"FB_IMG_1783974389395.jpg",
+"FB_IMG_1783982272653.jpg",
+"FB_IMG_1783982306188.jpg",
+"FB_IMG_1784025268322.jpg",
+"FB_IMG_1784025279688.jpg",
+"FB_IMG_1784025282728.jpg",
+"FB_IMG_1784025285113.jpg",
+"FB_IMG_1784025305955.jpg",
+"FB_IMG_1784025307515.jpg",
+"FB_IMG_1784025340267.jpg",
+"FB_IMG_1784025352452.jpg",
+"FB_IMG_1784025354114.jpg",
+"FB_IMG_1784025356706.jpg",
+"FB_IMG_1784025358697.jpg",
+"FB_IMG_1784025361170.jpg",
+"FB_IMG_1784025363245.jpg",
+"FB_IMG_1784025373416.jpg",
+"FB_IMG_1784025375451.jpg",
+"FB_IMG_1784025377529.jpg",
+"FB_IMG_1784025378385.jpg",
+"FB_IMG_1784025380347.jpg",
+"FB_IMG_1784025380993.jpg",
+"FB_IMG_1784025383496.jpg",
+"FB_IMG_1784025384738.jpg",
+"FB_IMG_1784025386295.jpg",
+"FB_IMG_1784025394131.jpg",
+"FB_IMG_1784025402095.jpg",
+"FB_IMG_1784025407349.jpg",
+"FB_IMG_1784029817078.jpg",
+"FB_IMG_1784029820067.jpg",
+"FB_IMG_1784042248258.jpg",
+"FB_IMG_1784042258548.jpg",
+"FB_IMG_1784042393897.jpg",
+"FB_IMG_1784042395902.jpg",
+"FB_IMG_1784042397165.jpg",
+"FB_IMG_1784043363011.jpg",
+"FB_IMG_1784043364471.jpg",
+"FB_IMG_1784043366539.jpg",
+"FB_IMG_1784043415756.jpg",
+"FB_IMG_1784043485991.jpg",
+"FB_IMG_1784043494882.jpg",
+"FB_IMG_1784043507321.jpg",
+"FB_IMG_1784043509197.jpg",
+"FB_IMG_1784043511985.jpg",
+"FB_IMG_1784043513830.jpg",
+"FB_IMG_1784043515917.jpg",
+"FB_IMG_1784043517548.jpg",
+"FB_IMG_1784043519331.jpg",
+"FB_IMG_1784043522200.jpg",
+"FB_IMG_1784043524092.jpg",
+"FB_IMG_1784043525980.jpg",
+"FB_IMG_1784043527853.jpg",
+"FB_IMG_1784043529663.jpg",
+"FB_IMG_1784043531631.jpg",
+"FB_IMG_1784043533550.jpg",
+"FB_IMG_1784043535247.jpg",
+"FB_IMG_1784043537763.jpg",
+"FB_IMG_1784043540051.jpg",
+"FB_IMG_1784043576056.jpg",
+"FB_IMG_1784043577722.jpg",
+"FB_IMG_1784043579611.jpg",
+"FB_IMG_1784044153101.jpg",
+"FB_IMG_1784046544534.jpg",
+"FB_IMG_1784046548877.jpg",
+"FB_IMG_1784046618688.jpg",
+"FB_IMG_1784046651533.jpg",
+"FB_IMG_1784067847735.jpg",
+"FB_IMG_1784067853546.jpg",
+"FB_IMG_1784067871979.jpg",
+"FB_IMG_1784067879737.jpg",
+"FB_IMG_1784067882193.jpg",
+"FB_IMG_1784067884632.jpg",
+"FB_IMG_1784067887219.jpg",
+"FB_IMG_1784067892121.jpg",
+"FB_IMG_1784067893707.jpg",
+"FB_IMG_1784067899110.jpg",
+"FB_IMG_1784067912532.jpg",
+"FB_IMG_1784067914506.jpg",
+"FB_IMG_1784067916524.jpg",
+"FB_IMG_1784067919262.jpg",
+"FB_IMG_1784067920211.jpg",
+"FB_IMG_1784067922520.jpg",
+"FB_IMG_1784067924583.jpg",
+"FB_IMG_1784067926446.jpg",
+"FB_IMG_1784067928487.jpg",
+"FB_IMG_1784067930539.jpg",
+"FB_IMG_1784067932761.jpg",
+"FB_IMG_1784067934715.jpg",
+"FB_IMG_1784067939071.jpg",
+"FB_IMG_1784067941259.jpg",
+"FB_IMG_1784067942848.jpg",
+"FB_IMG_1784067947347.jpg",
+"FB_IMG_1784067949024.jpg",
+"FB_IMG_1784067951860.jpg",
+"FB_IMG_1784067953453.jpg",
+"FB_IMG_1784067956150.jpg",
+"FB_IMG_1784067957426.jpg",
+"FB_IMG_1784067959370.jpg",
+"FB_IMG_1784067961757.jpg",
+"FB_IMG_1784067963742.jpg",
+"FB_IMG_1784067966186.jpg",
+"FB_IMG_1784067967735.jpg",
+"FB_IMG_1784079695237.jpg",
+"FB_IMG_1784079911848.jpg",
+"FB_IMG_1784079944257.jpg",
+"FB_IMG_1784079985960.jpg",
+"FB_IMG_1784094846036.jpg",
+"FB_IMG_1784094888095.jpg",
+"FB_IMG_1784094907243.jpg",
+"FB_IMG_1784094911635.jpg",
+"FB_IMG_1784094919920.jpg",
+"FB_IMG_1784094921241.jpg",
+"FB_IMG_1784094923861.jpg",
+"FB_IMG_1784094926511.jpg",
+"FB_IMG_1784094931496.jpg",
+"FB_IMG_1784094941130.jpg",
+"FB_IMG_1784094943061.jpg",
+"FB_IMG_1784094945456.jpg",
+"FB_IMG_1784094947847.jpg",
+"FB_IMG_1784094949331.jpg",
+"FB_IMG_1784094955794.jpg",
+"FB_IMG_1784094961580.jpg",
+"FB_IMG_1784094962812.jpg",
+"FB_IMG_1784094964919.jpg",
+"FB_IMG_1784094966478.jpg",
+"FB_IMG_1784094968620.jpg",
+"FB_IMG_1784095003579.jpg",
+"FB_IMG_1784095005195.jpg",
+"FB_IMG_1784095007480.jpg",
+"FB_IMG_1784095020326.jpg",
+"FB_IMG_1784095022045.jpg",
+"FB_IMG_1784107641476.jpg",
+"FB_IMG_1784107647420.jpg",
+"FB_IMG_1784107654593.jpg",
+"FB_IMG_1784107662750.jpg",
+"FB_IMG_1784107667402.jpg",
+"FB_IMG_1784107678977.jpg",
+"FB_IMG_1784107704580.jpg",
+"FB_IMG_1784107706366.jpg",
+"FB_IMG_1784107708314.jpg",
+"FB_IMG_1784107710601.jpg",
+"FB_IMG_1784107718428.jpg",
+"FB_IMG_1784107728651.jpg",
+"FB_IMG_1784107730366.jpg",
+"FB_IMG_1784107733238.jpg",
+"FB_IMG_1784107735073.jpg",
+"FB_IMG_1784107736910.jpg",
+"FB_IMG_1784107742926.jpg",
+"FB_IMG_1784107766383.jpg",
+"FB_IMG_1784107773901.jpg",
+"FB_IMG_1784107775652.jpg",
+"FB_IMG_1784107777374.jpg",
+"FB_IMG_1784107779382.jpg",
+"FB_IMG_1784107822219.jpg",
+"FB_IMG_1784108444547.jpg",
+"FB_IMG_1784108446804.jpg",
+"FB_IMG_1784108449903.jpg",
+"FB_IMG_1784108452539.jpg",
+"FB_IMG_1784108454095.jpg",
+"FB_IMG_1784108460395.jpg",
+"FB_IMG_1784108462404.jpg",
+"FB_IMG_1784108467279.jpg",
+"FB_IMG_1784108471172.jpg",
+"FB_IMG_1784108473511.jpg",
+"FB_IMG_1784108948503.jpg",
+"FB_IMG_1784108969335.jpg",
+"FB_IMG_1784108970007.jpg",
+"FB_IMG_1784109464509.jpg",
+"FB_IMG_1784111919026.jpg",
+"FB_IMG_1784111936731.jpg",
+"FB_IMG_1784126491421.jpg",
+"FB_IMG_1784126497575.jpg",
+"FB_IMG_1784126500829.jpg",
+"FB_IMG_1784126635914.jpg",
+"FB_IMG_1784126645155.jpg",
+"FB_IMG_1784126655337.jpg",
+"FB_IMG_1784126690998.jpg",
+"FB_IMG_1784126705683.jpg",
+"FB_IMG_1784126717814.jpg",
+"FB_IMG_1784126720238.jpg",
+"FB_IMG_1784126721155.jpg",
+"FB_IMG_1784126729754.jpg",
+"FB_IMG_1784126734148.jpg",
+"FB_IMG_1784126762521.jpg",
+"FB_IMG_1784126765582.jpg",
+"FB_IMG_1784126767497.jpg",
+"FB_IMG_1784126772907.jpg",
+"FB_IMG_1784126777928.jpg",
+"FB_IMG_1784126781832.jpg",
+"FB_IMG_1784126786665.jpg",
+"FB_IMG_1784126792636.jpg",
+"FB_IMG_1784126800894.jpg",
+"FB_IMG_1784126804767.jpg",
+"FB_IMG_1784126813490.jpg",
+"FB_IMG_1784126815440.jpg",
+"FB_IMG_1784126816983.jpg",
+"FB_IMG_1784126818758.jpg",
+"FB_IMG_1784126820643.jpg",
+"FB_IMG_1784126822399.jpg",
+"FB_IMG_1784126824324.jpg",
+"FB_IMG_1784126838576.jpg",
+"FB_IMG_1784126840218.jpg",
+"FB_IMG_1784126841970.jpg",
+"FB_IMG_1784126844261.jpg",
+"FB_IMG_1784126846207.jpg",
+"FB_IMG_1784126848609.jpg",
+"FB_IMG_1784126850689.jpg",
+"FB_IMG_1784126852497.jpg",
+"FB_IMG_1784126854559.jpg",
+"FB_IMG_1784126872697.jpg",
+"FB_IMG_1784126873808.jpg",
+"FB_IMG_1784126875994.jpg",
+"FB_IMG_1784126877943.jpg",
+"FB_IMG_1784126879763.jpg",
+"FB_IMG_1784126881781.jpg",
+"FB_IMG_1784126883608.jpg",
+"FB_IMG_1784126885796.jpg",
+"FB_IMG_1784126887241.jpg",
+"FB_IMG_1784126890412.jpg",
+"FB_IMG_1784126893664.jpg",
+"FB_IMG_1784126898078.jpg",
+"FB_IMG_1784126900269.jpg",
+"FB_IMG_1784126902790.jpg",
+"FB_IMG_1784126904004.jpg",
+"FB_IMG_1784126906219.jpg",
+"FB_IMG_1784126907879.jpg",
+"FB_IMG_1784126910164.jpg",
+"FB_IMG_1784126912515.jpg",
+"FB_IMG_1784126914961.jpg",
+"FB_IMG_1784126917815.jpg",
+"FB_IMG_1784126918895.jpg"
+];
+
+  // Convert a GitHub "blob" URL into a raw.githubusercontent.com URL for actual <img> loading.
+  function toRawUrl(filename){
+    return BASE_URL
+      .replace("github.com", "raw.githubusercontent.com")
+      .replace("/blob/", "/") + filename;
+  }
+
+  // Build the display model: a flat list of { name|null, file }
+  function buildModel(entries){
+    const model = [];
+    let activeName = null;
+    for(const entry of entries){
+      if(typeof entry === "string"){
+        model.push({ name: activeName, file: entry });
+      } else if(entry && typeof entry === "object"){
+        if(entry.name) activeName = entry.name;
+        if(entry.file) model.push({ name: activeName, file: entry.file });
+      }
+    }
+    return model;
+  }
+
+  const MODEL = buildModel(RAW_ENTRIES);
+
+  // ============================================================
+  // PAGINATION + VIRTUALIZATION
+  // ============================================================
+  const PAGE_SIZE = 30;
+  const TOTAL_PAGES = Math.max(1, Math.ceil(MODEL.length / PAGE_SIZE));
+  let currentPage = 1;
+  let currentObserver = null;
+
+  const galleryEl = document.getElementById("gallery");
+  const paginationEl = document.getElementById("pagination");
+  const metaLine = document.getElementById("metaLine");
+
+  metaLine.textContent = `${MODEL.length} profiles · ${TOTAL_PAGES} pages`;
+
+  function renderPage(page){
+    page = Math.min(Math.max(1, page), TOTAL_PAGES);
+    currentPage = page;
+
+    // --- UNLOAD previous page: disconnect observer, clear DOM/img sources ---
+    if(currentObserver){
+      currentObserver.disconnect();
+      currentObserver = null;
+    }
+    // Explicitly null out image src to release decoded bitmaps before clearing
+    galleryEl.querySelectorAll("img").forEach(img => { img.src = ""; });
+    galleryEl.innerHTML = "";
+
+    const start = (page - 1) * PAGE_SIZE;
+    const end = Math.min(start + PAGE_SIZE, MODEL.length);
+    const slice = MODEL.slice(start, end);
+
+    let lastHeader = null;
+    const frag = document.createDocumentFragment();
+
+    slice.forEach((item, i) => {
+      if(item.name && item.name !== lastHeader){
+        const h = document.createElement("div");
+        h.className = "card-name";
+        h.textContent = item.name;
+        frag.appendChild(h);
+        lastHeader = item.name;
+      }
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.animationDelay = (i * 0.012) + "s";
+      card.dataset.index = start + i;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      const inner = document.createElement("div");
+      inner.className = "avatar-inner";
+      const ph = document.createElement("div");
+      ph.className = "ph";
+      ph.textContent = "···";
+      inner.appendChild(ph);
+      avatar.appendChild(inner);
+      card.appendChild(avatar);
+
+      if(item.name){
+        const label = document.createElement("div");
+        label.className = "card-label";
+        label.textContent = item.name;
+        card.appendChild(label);
+      }
+
+      card.addEventListener("click", () => openLightbox(start + i));
+      card.dataset.file = item.file;
+      frag.appendChild(card);
+    });
+
+    galleryEl.appendChild(frag);
+
+    // --- Load ALL images belonging to THIS page immediately. ---
+    // (Virtualization boundary is the PAGE itself — 30 photos at a time —
+    // so once a page is opened, every photo on it loads right away instead
+    // of trickling in as you scroll.)
+    galleryEl.querySelectorAll(".card").forEach(cardEl => {
+      const inner = cardEl.querySelector(".avatar-inner");
+      const file = cardEl.dataset.file;
+      const img = new Image();
+      img.decoding = "async";
+      img.alt = "profile";
+      img.onload = () => {
+        inner.innerHTML = "";
+        inner.appendChild(img);
+        requestAnimationFrame(() => img.classList.add("loaded"));
+      };
+      img.onerror = () => {
+        const ph = inner.querySelector(".ph");
+        if(ph) ph.textContent = "×";
+      };
+      img.src = toRawUrl(file);
+    });
+
+    renderPagination(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderPagination(page){
+    paginationEl.innerHTML = "";
+    const addBtn = (label, target, active=false) => {
+      const b = document.createElement("button");
+      b.className = "pg-btn" + (active ? " active" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => renderPage(target));
+      paginationEl.appendChild(b);
+    };
+    const addDots = () => {
+      const d = document.createElement("div");
+      d.className = "pg-ellipsis";
+      d.textContent = "···";
+      paginationEl.appendChild(d);
+    };
+
+    const windowSize = 2;
+    const pagesToShow = new Set([1, TOTAL_PAGES]);
+    for(let p = page - windowSize; p <= page + windowSize; p++){
+      if(p >= 1 && p <= TOTAL_PAGES) pagesToShow.add(p);
+    }
+    const sorted = [...pagesToShow].sort((a,b) => a-b);
+
+    let prevP = 0;
+    for(const p of sorted){
+      if(prevP && p - prevP > 1) addDots();
+      addBtn(p, p, p === page);
+      prevP = p;
+    }
+  }
+
+  // ============================================================
+  // LIGHTBOX
+  // ============================================================
+  const lb = document.getElementById("lightbox");
+  const lbImg = document.getElementById("lbImg");
+  const lbCounter = document.getElementById("lbCounter");
+  let lbIndex = 0;
+  let pageStart = 0, pageEnd = 0;
+
+  function openLightbox(globalIndex){
+    pageStart = (currentPage - 1) * PAGE_SIZE;
+    pageEnd = Math.min(pageStart + PAGE_SIZE, MODEL.length);
+    lbIndex = globalIndex;
+    showLightboxImage();
+    lb.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeLightbox(){
+    lb.classList.remove("open");
+    lbImg.src = "";
+    document.body.style.overflow = "";
+  }
+  function showLightboxImage(){
+    const item = MODEL[lbIndex];
+    lbImg.src = toRawUrl(item.file);
+    lbCounter.textContent = `${lbIndex - pageStart + 1} / ${pageEnd - pageStart}  ·  page ${currentPage}`;
+  }
+  function lbNext(){
+    lbIndex = lbIndex + 1 >= pageEnd ? pageStart : lbIndex + 1;
+    showLightboxImage();
+  }
+  function lbPrev(){
+    lbIndex = lbIndex - 1 < pageStart ? pageEnd - 1 : lbIndex - 1;
+    showLightboxImage();
+  }
+
+  document.getElementById("lbClose").addEventListener("click", closeLightbox);
+  document.getElementById("lbNext").addEventListener("click", lbNext);
+  document.getElementById("lbPrev").addEventListener("click", lbPrev);
+  lb.addEventListener("click", (e) => { if(e.target === lb) closeLightbox(); });
+
+  document.addEventListener("keydown", (e) => {
+    if(!lb.classList.contains("open")) return;
+    if(e.key === "Escape") closeLightbox();
+    if(e.key === "ArrowRight") lbNext();
+    if(e.key === "ArrowLeft") lbPrev();
+  });
+
+  // touch swipe
+  let touchStartX = 0;
+  lb.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; }, {passive:true});
+  lb.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if(Math.abs(dx) > 40){ dx > 0 ? lbPrev() : lbNext(); }
+  }, {passive:true});
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  renderPage(1);
+</script>
+</body>
+</html>
